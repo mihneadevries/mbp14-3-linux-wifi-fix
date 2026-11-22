@@ -84,3 +84,7 @@ All three persist across reboots and package updates. They work on any network, 
 - [Arch Wiki: Broadcom wireless](https://wiki.archlinux.org/title/Broadcom_wireless)
 
 Scripts and docs: GPL-2.0 (see LICENSE).
+
+## Contributing
+
+This repo doesn't accept pull requests from outside contributors. To change something for your own machine, fork it. Bug reports in Issues are welcome.
