@@ -18,6 +18,35 @@ These notes come from the original debugging session (Nov 2026) on a MacBookPro1
 - **Don't restart NetworkManager while another link (USB tether, Ethernet) carries the session.** `nmcli general reload conf` rereads `conf.d` without touching active connections.
 - **A saved 5 GHz profile that can't connect makes NetworkManager keep retrying,** which interrupts the working 2.4 GHz link. Delete it (`nmcli con delete <name>`) until the fixes are in.
 
+## 5 GHz refused after the battery ran flat (Nov 22)
+
+With all three fixes still installed, 5 GHz stopped working for about 90 minutes. What we saw:
+
+- `wpa_supplicant: CTRL-EVENT-ASSOC-REJECT ... status_code=16` within about 0.14 s of every join attempt, before any frame went to the AP. This happened on every 5 GHz AP and channel (100, 161, and 40 at 100% signal from 2 m). 2.4 GHz kept working.
+- **Telltale in the boot log:** `brcmfmac 0000:03:00.0: enabling device (0000 -> 0002)`. It means the Mac's EFI did *not* switch the card on before Linux started. Across 20 boots, the card started switched off in 4 of them, and 5 GHz failed in all 3 of those that tried it. When the card started switched on, 5 GHz worked in every boot that tried it.
+- **Trigger:** the battery was drained to 7%, and UPower's critical action (PowerOff) shut the Mac down 8 times in a row. The first bad boot followed one of those shutdowns. Around the same time, the T1 came up as `05ac:1281` "Apple Mobile Device (Recovery Mode)" once.
+- **What brought it back:** charging with a proper USB-C charger (a weak one only added about 8 W while the laptop was on), then a clean shutdown and power-on a few minutes later. The card started switched on again, and 5 GHz connected by itself.
+
+What did **not** help, so don't repeat it:
+- Replaying the original fix steps: driver reload, `nmcli dev set ... managed no/yes`, `iw reg set VN` → `iw reg set US`.
+- `ccode=US` / `regrev=0` in the NVRAM file. While disconnected, the card still reported channels 149-165 as disabled.
+- Turning PMF off on the 5 GHz profile.
+- Restarting the router. It moved the 5 GHz radio to channel 40, which still failed.
+- A full power-off with the weak charger, or an SMC reset (left Shift + Control + Option + power, 10 s). The SMC reset did clear the T1 Recovery Mode.
+
+How to check quickly:
+
+```bash
+journalctl -b -k | grep 'brcmfmac 0000:03:00.0: enabling device'   # present = bad start
+cat /sys/class/power_supply/BAT0/capacity /sys/class/power_supply/ADP1/online
+```
+
+If the line is present, charge with a proper charger, then shut down and start again. Don't change the Wi-Fi config.
+
+The root cause isn't proven. The explanation that fits is that EFI skips Wi-Fi initialization after the battery has been drained flat, and that the card refuses 5 GHz when Linux has to start it from scratch. Booting a btrfs snapshot from before the fix (no NVRAM file) in the same window wasn't the cause.
+
+Side issue: the iPhone USB tether, the fallback internet during all this, wasn't detected at first. The Thunderbolt USB controllers (`07:00.0`, `7d:00.0`) stayed runtime-suspended and missed the hotplug. `echo on | sudo tee /sys/bus/pci/devices/0000:{07,7d}:00.0/power/control` woke them, and the phone appeared immediately.
+
 ## Speed testing
 
 - `speed.cloudflare.com/__down` started throttling to a few bytes per second after repeated large downloads. Use another server, for example `https://proof.ovh.net/files/100Mb.dat`, or the browser.

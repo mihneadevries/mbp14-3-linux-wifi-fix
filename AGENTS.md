@@ -52,6 +52,7 @@ Make the 5 GHz profile preferred: `nmcli con mod <name_5G> connection.autoconnec
 
 Work through these in order. They are the exact failure modes found on this machine:
 
+0. **Did it work before and suddenly stop, with every join rejected instantly (`ASSOC-REJECT ... status_code=16`)?** Check `journalctl -b -k | grep 'brcmfmac 0000:03:00.0: enabling device'`. If that line is present, the card started in a bad state, most likely after the battery was drained flat. Don't change any config. Have the user charge with a proper charger, then shut down and power on. Details are in docs/lessons-learned.md ("5 GHz refused after the battery ran flat"). If the user needs internet meanwhile, use an iPhone USB tether, and wake the USB-C controllers first if the phone isn't detected (same section).
 1. **Is Band 2 present?** If not, the NVRAM file didn't load. Check `journalctl -k -b | grep -i brcmf` for the file being requested, then reboot. Don't read `phy0` after a driver reload: the phy renumbers (phy0 → phy1). Use `cat /sys/class/net/<if>/phy80211/name`.
 2. **"network could not be found" + `CTRL-EVENT-SCAN-FAILED ret=-22`** in `journalctl -u wpa_supplicant`: the random-MAC scan problem. Check that `/etc/NetworkManager/conf.d/90-mbp-wifi.conf` exists and run `nmcli general reload conf`.
 3. **Scans for ~20 s, sees the network, never tries to join:** a regulatory-domain problem. Turn on wpa_supplicant debug logging, retry, then read the log:
