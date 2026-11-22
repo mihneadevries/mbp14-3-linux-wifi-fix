@@ -25,6 +25,7 @@ With all three fixes still installed, 5 GHz stopped working for about 90 minutes
 - `wpa_supplicant: CTRL-EVENT-ASSOC-REJECT ... status_code=16` within about 0.14 s of every join attempt, before any frame went to the AP. This happened on every 5 GHz AP and channel (100, 161, and 40 at 100% signal from 2 m). 2.4 GHz kept working.
 - **Telltale in the boot log:** `brcmfmac 0000:03:00.0: enabling device (0000 -> 0002)`. It means the Mac's EFI did *not* switch the card on before Linux started. Across 20 boots, the card started switched off in 4 of them, and 5 GHz failed in all 3 of those that tried it. When the card started switched on, 5 GHz worked in every boot that tried it.
 - **Trigger:** the battery was drained to 7%, and UPower's critical action (PowerOff) shut the Mac down 8 times in a row. The first bad boot followed one of those shutdowns. Around the same time, the T1 came up as `05ac:1281` "Apple Mobile Device (Recovery Mode)" once.
+- **Second trigger, seen the same day:** a forced reset after a hung suspend test (machine frozen, then reset or power-button hold). The next boot showed `enabling device` and 5 GHz was refused again, while the battery was fine and charging. Same fix: a clean shutdown (not a power-button hold), then power on.
 - **What brought it back:** charging with a proper USB-C charger (a weak one only added about 8 W while the laptop was on), then a clean shutdown and power-on a few minutes later. The card started switched on again, and 5 GHz connected by itself.
 
 What did **not** help, so don't repeat it:
